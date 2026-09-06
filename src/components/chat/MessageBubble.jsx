@@ -1,5 +1,7 @@
+import { AttachmentChip } from './AttachmentChip';
+
 // User message bubble (right-aligned)
-export function MessageBubble({ text }) {
+export function MessageBubble({ text, files = [] }) {
   return (
     <div className="animate-fade-in" style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
       <div
@@ -16,7 +18,16 @@ export function MessageBubble({ text }) {
           backdropFilter: 'blur(8px)',
         }}
       >
-        <p style={{ lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</p>
+        {files.length > 0 && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: text ? '10px' : 0, justifyContent: 'flex-end' }}>
+            {files.map((f, i) => (
+              <AttachmentChip key={`${f.name}-${i}`} file={f} removable={false} />
+            ))}
+          </div>
+        )}
+        {text && (
+          <p style={{ lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{text}</p>
+        )}
         <div style={{ fontSize: '10px', color: 'rgba(56,189,248,0.6)', textAlign: 'right', marginTop: '4px', fontFamily: "'JetBrains Mono', monospace" }}>
           Just now
         </div>

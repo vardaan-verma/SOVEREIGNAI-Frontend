@@ -6,22 +6,43 @@ import { HeroGreeting } from '../components/chat/HeroGreeting';
 import { ChatInput } from '../components/chat/ChatInput';
 import { MessageBubble } from '../components/chat/MessageBubble';
 import { AssistantMessage } from '../components/chat/AssistantMessage';
+import { RoutingLogPanel } from '../components/chat/RoutingLogPanel';
 import { PiLogo } from '../components/ui/PiLogo';
 import { getChatResponse } from '../api/chat';
-
+ 
 let msgIdCounter = 0;
-
+let logIdCounter = 0;
+ 
 export default function HomePage() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeChatId, setActiveChatId] = useState(null);
-  const [chatTitle, setChatTitle] = useState('SOVA 1.5 Pro');
+  const [chatTitle, setChatTitle] = useState('SOVA Workbench');
   const [chatTitleBadge, setChatTitleBadge] = useState('');
   const [messages, setMessages] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [showHero, setShowHero] = useState(true); // hero greeting shown after login
+  const [routingLog, setRoutingLog] = useState([]); // every routing decision made this session
+  const [routingLogOpen, setRoutingLogOpen] = useState(false);
   const viewportRef = useRef(null);
-
+ 
+  // Read whatever LoginPage stored on successful auth. Re-checked on every
+  // mount, so navigating here after logging in (or refreshing) reflects it.
+  const [session, setSession] = useState(() => {
+    try {
+      const raw = localStorage.getItem('sova_session');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+ 
+  function handleLogout() {
+    localStorage.removeItem('sova_session');
+    setSession(null);
+    navigate('/login');
+  }
+ 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
       if (viewportRef.current) {
@@ -29,28 +50,40 @@ export default function HomePage() {
       }
     }, 50);
   }, []);
-
-  async function handleSend(text) {
+ 
+  async function handleSend(text, files = []) {
     if (isStreaming) return;
     setShowHero(false);
     setIsStreaming(true);
-
-    const userMsg = { id: msgIdCounter++, type: 'user', text };
+ 
+    const userMsg = { id: msgIdCounter++, type: 'user', text, files };
     const assistantId = msgIdCounter++;
     setMessages((prev) => [
       ...prev,
       userMsg,
-      { id: assistantId, type: 'assistant', markdown: null, animate: true }, // placeholder
+      { id: assistantId, type: 'assistant', markdown: null, routing: null, animate: true }, // placeholder
     ]);
     scrollToBottom();
-
+ 
     try {
-      const response = await getChatResponse(text);
+      const { markdown, routing } = await getChatResponse(text, files);
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === assistantId ? { ...m, markdown: response } : m
+          m.id === assistantId ? { ...m, markdown, routing } : m
         )
       );
+      if (routing) {
+        setRoutingLog((prev) => [
+          {
+            id: logIdCounter++,
+            time: new Date().toLocaleTimeString(),
+            model: routing.model,
+            taskType: routing.taskType,
+            externalCalls: routing.externalCalls ?? 0,
+          },
+          ...prev,
+        ]);
+      }
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
@@ -62,7 +95,7 @@ export default function HomePage() {
     }
     // streaming flag released by AssistantMessage onComplete
   }
-
+ 
   function handleSelectChat(chat) {
     setActiveChatId(chat.id);
     setChatTitle(chat.title);
@@ -74,25 +107,26 @@ export default function HomePage() {
         id: msgIdCounter++,
         type: 'assistant',
         markdown: chat.preview + '\n\nFeel free to ask follow-up questions!',
+        routing: null,
         animate: false,
       },
     ]);
     scrollToBottom();
   }
-
+ 
   function handleNewChat() {
     setActiveChatId(null);
-    setChatTitle('SOVA 1.5 Pro');
+    setChatTitle('SOVA Workbench');
     setChatTitleBadge('');
     setMessages([]);
     setShowHero(true);
     setIsStreaming(false);
   }
-
+ 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-primary)', position: 'relative' }}>
       <AmbientBackground variant="home" />
-
+ 
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -105,7 +139,7 @@ export default function HomePage() {
           className="mobile-backdrop"
         />
       )}
-
+ 
       {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -113,7 +147,7 @@ export default function HomePage() {
         onSelectChat={handleSelectChat}
         onNewChat={handleNewChat}
       />
-
+ 
       {/* Main area */}
       <div
         style={{
@@ -166,55 +200,117 @@ export default function HomePage() {
               )}
             </div>
           </div>
-
+ 
           {/* Right controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* Sign in button */}
+            {/* Routing log toggle — the demo-day "proof" button */}
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => setRoutingLogOpen((v) => !v)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '6px 12px', borderRadius: '10px', fontSize: '12px',
-                fontWeight: 500, color: 'var(--text-main)',
-                background: 'none', border: '1px solid var(--sidebar-border)',
-                cursor: 'pointer', transition: 'background 0.15s',
+                fontWeight: 500, color: routingLogOpen ? '#38bdf8' : 'var(--text-main)',
+                background: routingLogOpen ? 'rgba(56,189,248,0.10)' : 'none',
+                border: '1px solid var(--sidebar-border)',
+                cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+              onMouseEnter={(e) => { if (!routingLogOpen) e.currentTarget.style.background = 'var(--sidebar-hover)'; }}
+              onMouseLeave={(e) => { if (!routingLogOpen) e.currentTarget.style.background = 'none'; }}
             >
-              <svg width="14" height="14" fill="none" stroke="#38bdf8" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4m-5-4l5-5-5-5m5 5H3" />
-              </svg>
-              <span>Sign in</span>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8', display: 'inline-block' }} />
+              <span>Routing log</span>
+              {routingLog.length > 0 && (
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--text-muted)' }}>
+                  ({routingLog.length})
+                </span>
+              )}
             </button>
-            {/* Profile avatar */}
-            <button
-              onClick={() => navigate('/login')}
-              style={{
-                width: 32, height: 32, borderRadius: '50%',
-                background: 'linear-gradient(135deg, rgba(56,189,248,0.20), rgba(192,132,252,0.30))',
-                border: '1px solid rgba(56,189,248,0.30)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', position: 'relative',
-                transition: 'border-color 0.15s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(56,189,248,0.60)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(56,189,248,0.30)')}
-              title="Profile & Account — click to sign in"
-            >
-              <svg width="16" height="16" fill="none" stroke="#93c5fd" strokeWidth="1.75" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span style={{
-                position: 'absolute', bottom: 0, right: 0,
-                width: 8, height: 8, borderRadius: '50%',
-                background: '#10b981',
-                border: '2px solid var(--bg-primary)',
-              }} />
-            </button>
+ 
+            {session ? (
+              <>
+                {/* Logged-in state: shows who's in, click to log out */}
+                <button
+                  onClick={handleLogout}
+                  title="Click to log out"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 12px', borderRadius: '10px', fontSize: '12px',
+                    fontWeight: 500, color: 'var(--text-main)',
+                    background: 'none', border: '1px solid var(--sidebar-border)',
+                    cursor: 'pointer', transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                >
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", color: '#7dd3fc' }}>
+                    {session.employee_id}
+                  </span>
+                  <span style={{ color: 'var(--text-muted)' }}>· Log out</span>
+                </button>
+                <div
+                  style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(56,189,248,0.20), rgba(192,132,252,0.30))',
+                    border: '1px solid rgba(56,189,248,0.30)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'relative',
+                  }}
+                  title={`Signed in as ${session.employee_id} (${session.role})`}
+                >
+                  <svg width="16" height="16" fill="none" stroke="#93c5fd" strokeWidth="1.75" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span style={{
+                    position: 'absolute', bottom: 0, right: 0,
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: '#10b981',
+                    border: '2px solid var(--bg-primary)',
+                  }} />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Logged-out state: sends to LoginPage */}
+                <button
+                  onClick={() => navigate('/login')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 12px', borderRadius: '10px', fontSize: '12px',
+                    fontWeight: 500, color: 'var(--text-main)',
+                    background: 'none', border: '1px solid var(--sidebar-border)',
+                    cursor: 'pointer', transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                >
+                  <svg width="14" height="14" fill="none" stroke="#38bdf8" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4m-5-4l5-5-5-5m5 5H3" />
+                  </svg>
+                  <span>Sign in</span>
+                </button>
+                <button
+                  onClick={() => navigate('/login')}
+                  style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(56,189,248,0.20), rgba(192,132,252,0.30))',
+                    border: '1px solid rgba(56,189,248,0.30)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', position: 'relative',
+                    transition: 'border-color 0.15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(56,189,248,0.60)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(56,189,248,0.30)')}
+                  title="Profile & Account — click to sign in"
+                >
+                  <svg width="16" height="16" fill="none" stroke="#93c5fd" strokeWidth="1.75" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         </header>
-
+ 
         {/* Chat viewport */}
         <main
           ref={viewportRef}
@@ -236,13 +332,14 @@ export default function HomePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '8px' }}>
               {messages.map((msg) => {
                 if (msg.type === 'user') {
-                  return <MessageBubble key={msg.id} text={msg.text} />;
+                  return <MessageBubble key={msg.id} text={msg.text} files={msg.files} />;
                 }
                 if (msg.type === 'assistant' && msg.markdown) {
                   return (
                     <AssistantMessage
                       key={msg.id}
                       markdown={msg.markdown}
+                      routing={msg.routing}
                       animate={msg.animate}
                       onComplete={() => setIsStreaming(false)}
                     />
@@ -270,10 +367,14 @@ export default function HomePage() {
             </div>
           )}
         </main>
-
+ 
         {/* Chat input */}
         <ChatInput onSend={handleSend} isStreaming={isStreaming} />
       </div>
+ 
+      {routingLogOpen && (
+        <RoutingLogPanel entries={routingLog} onClose={() => setRoutingLogOpen(false)} />
+      )}
     </div>
   );
 }

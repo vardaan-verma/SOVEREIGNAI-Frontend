@@ -3,12 +3,11 @@ import { PiLogo } from '../ui/PiLogo';
 import { ChatItem } from './ChatItem';
 
 const RECENT_CHATS = [
-  { id: 1, title: 'Warm Lighting and Lamp Replacement', preview: 'How to choose 2700K vs 3000K warm lighting for living spaces...' },
-  { id: 2, title: 'Remove Fedora Dual Boot in Windows', preview: 'Safely deleting Linux EFI partitions and updating Windows bootloader...' },
-  { id: 3, title: 'Convert Image to Dithered GIF', preview: 'Command line ffmpeg and imagemagick palettes for floyd-steinberg dithering...' },
-  { id: 4, title: 'Retro-Futurist YouTube Gaming Banner', preview: 'Mid-90s synthwave neon layout with cyber grid gradients...' },
-  { id: 5, title: 'Project Report Image Generation', preview: 'Prompts for clean minimal architectural diagrams...' },
-  { id: 6, title: 'Branch • Project Report Image Generat...', preview: 'Branch version testing different lighting schemes...' },
+  { id: 1, title: 'Draft approval note — Unit 3 inspection', preview: 'Summarize scanned inspection report and draft an approval note for Unit 3 shutdown findings...' },
+  { id: 2, title: 'P&ID revision check — Line 220', preview: 'Compare uploaded P&ID revision against the previous approved version for line 220...' },
+  { id: 3, title: 'Vendor quote comparison script', preview: 'Python script to parse and compare three vendor quotation spreadsheets...' },
+  { id: 4, title: 'SOP lookup — confined space entry', preview: 'Grounded answer from internal safety manual on confined space entry procedure...' },
+  { id: 5, title: 'Sensor CSV anomaly scan', preview: 'Flag readings outside tolerance in the last shift\u2019s sensor export...' },
 ];
 
 export function Sidebar({ isOpen, activeId, onSelectChat, onNewChat }) {
@@ -151,6 +150,7 @@ export function Sidebar({ isOpen, activeId, onSelectChat, onNewChat }) {
       <div style={{ padding: '12px', borderTop: '1px solid var(--sidebar-border)' }}>
         <a
           href="#"
+          onClick={(e) => e.preventDefault()}
           style={{
             display: 'flex', alignItems: 'center', gap: '12px',
             padding: '8px 12px', borderRadius: '12px',
@@ -168,6 +168,7 @@ export function Sidebar({ isOpen, activeId, onSelectChat, onNewChat }) {
         </a>
         <a
           href="#"
+          onClick={(e) => e.preventDefault()}
           style={{
             display: 'flex', alignItems: 'center', gap: '12px',
             padding: '8px 12px', borderRadius: '12px',
@@ -187,14 +188,11 @@ export function Sidebar({ isOpen, activeId, onSelectChat, onNewChat }) {
         {/* Version badge */}
         <div style={{
           padding: '8px 12px 4px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          display: 'flex', alignItems: 'center', gap: '8px',
           fontSize: '11px', color: 'var(--text-subtle)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', display: 'inline-block' }} />
-            <span>SOVA Advanced</span>
-          </div>
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', opacity: 0.75 }}>1.5 Pro</span>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981', display: 'inline-block' }} />
+          <span>SOVA — on-premise</span>
         </div>
       </div>
     </aside>

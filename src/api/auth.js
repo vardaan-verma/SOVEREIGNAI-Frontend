@@ -3,14 +3,14 @@
 // To switch to real API: comment out the simulation block and
 // uncomment the real fetch block below it.
 //
-// Valid demo credentials: EMP1@123  /  12345
+// Valid demo credentials: EMP-9428  /  demo-pass-2026
 // ─────────────────────────────────────────────────────────────────────────────
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // ── VALID DEMO CREDENTIALS ────────────────────────────────────────────────────
-const DEMO_EMPLOYEE_ID = 'EMP1@123';
-const DEMO_ACCESS_TOKEN = '12345';
+const DEMO_EMPLOYEE_ID = 'EMP-9428';
+const DEMO_ACCESS_TOKEN = 'demo-pass-2026';
 
 /**
  * Authenticates an employee.
@@ -51,4 +51,3 @@ export async function authenticateUser(employeeId, accessToken) {
   // return { success: true, message: data.message || 'Authentication successful.', data };
   // ─────────────────────────────────────────────────────────────────────────
 }
-

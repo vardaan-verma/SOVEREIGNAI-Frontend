@@ -5,7 +5,7 @@ export function ChatItem({ title, isActive, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={isActive ? 'active-chat-item' : ''}
+      className={`sidebar-chat-row ${isActive ? 'active-chat-item' : ''}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -52,6 +52,7 @@ export function ChatItem({ title, isActive, onClick }) {
       <button
         onClick={(e) => e.stopPropagation()}
         title="Options"
+        className="sidebar-chat-kebab"
         style={{
           opacity: 0,
           padding: '4px',
@@ -63,8 +64,6 @@ export function ChatItem({ title, isActive, onClick }) {
           transition: 'opacity 0.15s',
           display: 'flex',
         }}
-        onFocus={(e) => (e.currentTarget.style.opacity = '1')}
-        onBlur={(e) => (e.currentTarget.style.opacity = '0')}
       >
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
           <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />

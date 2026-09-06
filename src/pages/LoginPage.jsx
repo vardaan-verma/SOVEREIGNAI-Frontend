@@ -35,6 +35,7 @@ export default function LoginPage() {
     try {
       const result = await authenticateUser(empId, token);
       if (result.success) {
+        localStorage.setItem('sova_session', JSON.stringify(result.data));
         setStatus('success');
         setStatusMsg(result.message);
         // Navigate to home after brief success display
@@ -151,6 +152,7 @@ export default function LoginPage() {
                     </label>
                     <a
                       href="#"
+                      onClick={(e) => e.preventDefault()}
                       style={{ fontSize: '11px', color: '#38bdf8', textDecoration: 'none', fontFamily: "'JetBrains Mono', monospace", transition: 'color 0.15s' }}
                       onMouseEnter={(e) => (e.currentTarget.style.color = '#7dd3fc')}
                       onMouseLeave={(e) => (e.currentTarget.style.color = '#38bdf8')}
@@ -203,6 +205,7 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
+                    className="auth-submit-btn"
                     style={{
                       position: 'relative',
                       width: '100%',
@@ -258,20 +261,21 @@ export default function LoginPage() {
                 <div style={{ marginTop: '16px' }}>
                   <StatusBox state={status} customMessage={statusMsg} />
 
-                  {/* Test state chips */}
-                  <div style={{
-                    marginTop: '12px', paddingTop: '8px', borderTop: '1px solid rgba(30,41,59,0.6)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px',
-                  }}>
-                    <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'JetBrains Mono', monospace", color: '#475569', userSelect: 'none' }}>
-                      Test states:
-                    </span>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <ChipBtn label="Checking" color="amber" onClick={() => triggerTestState('checking')} />
-                      <ChipBtn label="Success" color="emerald" onClick={() => triggerTestState('success')} />
-                      <ChipBtn label="Failed" color="rose" onClick={() => triggerTestState('failed')} />
+                  {import.meta.env.DEV && (
+                    <div style={{
+                      marginTop: '12px', paddingTop: '8px', borderTop: '1px solid rgba(30,41,59,0.6)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px',
+                    }}>
+                      <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: "'JetBrains Mono', monospace", color: '#475569', userSelect: 'none' }}>
+                        Test states:
+                      </span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <ChipBtn label="Checking" color="amber" onClick={() => triggerTestState('checking')} />
+                        <ChipBtn label="Success" color="emerald" onClick={() => triggerTestState('success')} />
+                        <ChipBtn label="Failed" color="rose" onClick={() => triggerTestState('failed')} />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
@@ -300,7 +304,7 @@ export default function LoginPage() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: '#38bdf8', fontSize: '14px' }}>π</span>
-          <span>SOVA Autonomous Intelligence Systems © 2025</span>
+          <span>SOVA Autonomous Intelligence Systems © {new Date().getFullYear()}</span>
         </div>
       </footer>
     </div>

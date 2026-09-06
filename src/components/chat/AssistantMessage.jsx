@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTypewriter } from '../../hooks/useTypewriter';
+import { RoutingTrace } from './RoutingTrace';
 
 // Converts raw markdown text to React elements (simple parser)
 function parseMarkdown(text) {
@@ -157,7 +158,7 @@ function ThinkingSkeleton() {
   );
 }
 
-export function AssistantMessage({ markdown, animate = true, onComplete }) {
+export function AssistantMessage({ markdown, routing, animate = true, onComplete }) {
   const [phase, setPhase] = useState(animate ? 'thinking' : 'done');
   const [displayed, setDisplayed] = useState(animate ? '' : markdown);
   const [copied, setCopied] = useState(false);
@@ -192,8 +193,14 @@ export function AssistantMessage({ markdown, animate = true, onComplete }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
           <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-main)' }}>SOVA</span>
-          <span style={{ fontSize: '10px', color: 'rgba(56,189,248,0.8)', fontFamily: "'JetBrains Mono', monospace" }}>1.5 Pro</span>
+          <span style={{ fontSize: '10px', color: 'rgba(56,189,248,0.8)', fontFamily: "'JetBrains Mono', monospace" }}>
+            {routing?.model || 'Local model'}
+          </span>
         </div>
+
+        {/* Routing trace — only once the response is fully in, so it doesn't
+            pop in mid-stream and distract from the typewriter effect */}
+        {phase === 'done' && <RoutingTrace routing={routing} />}
 
         {/* Content */}
         <div className="prose-dark" style={{ fontSize: '0.875rem', lineHeight: 1.7, color: 'var(--text-main)' }}>
