@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # PostgreSQL + pgvector — local-only, no external network access
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: mrpl_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mrpl_secret
+      POSTGRES_DB: mrpl_kb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - mrpl_internal
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  mrpl_internal:
+    driver: bridge
+    internal: false    # only the MCP server talks to postgres; postgres has no internet

@@ -1,0 +1,32 @@
+# MRPL MCP Server — Python dependencies
+# Pin major versions; upgrade with care in production.
+
+# ── Core server ───────────────────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+
+# ── File I/O ──────────────────────────────────────────────────────────────────
+python-docx==1.1.2
+openpyxl==3.1.5
+
+# ── Knowledge base ────────────────────────────────────────────────────────────
+psycopg2-binary==2.9.9
+pgvector==0.3.5
+sentence-transformers==3.1.1
+
+# ── Docker sandbox ────────────────────────────────────────────────────────────
+docker==7.1.0
+
+# ── Vision / OCR (optional — install the one that works on your OS) ───────────
+# PaddleOCR (Linux/Mac recommended):
+#   pip install paddlepaddle paddleocr
+# pytesseract (Windows fallback):
+#   pip install pytesseract pillow pdf2image
+# pypdf (always installed as last-resort text extraction):
+pypdf==4.3.1
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx==0.27.2

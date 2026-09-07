@@ -1,0 +1,6 @@
+# Python packages pre-installed in the sandbox image
+numpy==1.26.4
+pandas==2.2.2
+scipy==1.13.1
+matplotlib==3.9.2
+openpyxl==3.1.5
