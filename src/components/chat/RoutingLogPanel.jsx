@@ -1,7 +1,6 @@
-// Session-wide log of every routing decision made so far. Meant to be
-// toggled from the header — this is the panel you pull up during a demo
-// to show judges the model-selection trail across an entire session, not
-// just one message at a time.
+// Log of every routing decision made in the CURRENT chat. Derived from the
+// active message list in HomePage, so switching or starting a new chat
+// clears it automatically — this deliberately does not persist across chats.
 export function RoutingLogPanel({ entries, onClose }) {
   return (
     <div
@@ -23,7 +22,7 @@ export function RoutingLogPanel({ entries, onClose }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
         <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-main)' }}>
-          Routing log — this session
+          Routing log — this chat
         </span>
         <button
           onClick={onClose}
@@ -45,7 +44,7 @@ export function RoutingLogPanel({ entries, onClose }) {
               <div style={{ color: '#7dd3fc', fontFamily: "'JetBrains Mono', monospace" }}>{e.time}</div>
               <div style={{ color: 'var(--text-main)' }}>{e.model}</div>
               <div style={{ color: 'var(--text-muted)' }}>
-                {e.taskType} &middot; {e.externalCalls} external calls
+                {e.taskType} &middot; {e.externalCalls} local {e.externalCalls === 1 ? 'call' : 'calls'}
               </div>
             </div>
           ))}
@@ -54,4 +53,3 @@ export function RoutingLogPanel({ entries, onClose }) {
     </div>
   );
 }
- 

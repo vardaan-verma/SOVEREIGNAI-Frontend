@@ -1,5 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { installNetworkMonitor } from './lib/networkMonitor'
+
+// Must run before any other code makes a request — catches the login
+// call and everything after it. Safe to call once; no-ops if called again.
+installNetworkMonitor()
 
 // Self-hosted fonts (replaces the old Google Fonts @import in index.css).
 // These ship as local .woff2 files bundled by Vite — zero runtime network

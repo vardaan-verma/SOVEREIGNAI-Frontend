@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AmbientBackground } from '../components/layout/AmbientBackground';
 import { Sidebar } from '../components/sidebar/Sidebar';
@@ -7,12 +7,14 @@ import { ChatInput } from '../components/chat/ChatInput';
 import { MessageBubble } from '../components/chat/MessageBubble';
 import { AssistantMessage } from '../components/chat/AssistantMessage';
 import { RoutingLogPanel } from '../components/chat/RoutingLogPanel';
+import { AirGapBadge } from '../components/chat/AirGapBadge';
+import { NetworkActivityPanel } from '../components/chat/NetworkActivityPanel';
 import { PiLogo } from '../components/ui/PiLogo';
 import { getChatResponse } from '../api/chat';
- 
+import { DEMO_CHATS } from '../data/demoChats';
+
 let msgIdCounter = 0;
-let logIdCounter = 0;
- 
+
 export default function HomePage() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -22,10 +24,28 @@ export default function HomePage() {
   const [messages, setMessages] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [showHero, setShowHero] = useState(true); // hero greeting shown after login
-  const [routingLog, setRoutingLog] = useState([]); // every routing decision made this session
   const [routingLogOpen, setRoutingLogOpen] = useState(false);
+  const [networkPanelOpen, setNetworkPanelOpen] = useState(false);
   const viewportRef = useRef(null);
- 
+
+  // Routing log is derived from whatever's currently in `messages`, not
+  // stored separately — so switching chats or starting a new one clears it
+  // automatically, and it can never show entries from a different chat.
+  const routingLog = useMemo(
+    () =>
+      messages
+        .filter((m) => m.type === 'assistant' && m.routing)
+        .map((m) => ({
+          id: m.id,
+          time: m.receivedAt || '',
+          model: m.routing.model,
+          taskType: m.routing.taskType,
+          externalCalls: m.routing.externalCalls ?? 0,
+        }))
+        .reverse(), // most recent first, matching the panel's prior ordering
+    [messages]
+  );
+
   // Read whatever LoginPage stored on successful auth. Re-checked on every
   // mount, so navigating here after logging in (or refreshing) reflects it.
   const [session, setSession] = useState(() => {
@@ -36,13 +56,13 @@ export default function HomePage() {
       return null;
     }
   });
- 
+
   function handleLogout() {
     localStorage.removeItem('sova_session');
     setSession(null);
     navigate('/login');
   }
- 
+
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
       if (viewportRef.current) {
@@ -50,12 +70,12 @@ export default function HomePage() {
       }
     }, 50);
   }, []);
- 
+
   async function handleSend(text, files = []) {
     if (isStreaming) return;
     setShowHero(false);
     setIsStreaming(true);
- 
+
     const userMsg = { id: msgIdCounter++, type: 'user', text, files };
     const assistantId = msgIdCounter++;
     setMessages((prev) => [
@@ -64,26 +84,16 @@ export default function HomePage() {
       { id: assistantId, type: 'assistant', markdown: null, routing: null, animate: true }, // placeholder
     ]);
     scrollToBottom();
- 
+
     try {
       const { markdown, routing } = await getChatResponse(text, files);
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === assistantId ? { ...m, markdown, routing } : m
+          m.id === assistantId
+            ? { ...m, markdown, routing, receivedAt: new Date().toLocaleTimeString() }
+            : m
         )
       );
-      if (routing) {
-        setRoutingLog((prev) => [
-          {
-            id: logIdCounter++,
-            time: new Date().toLocaleTimeString(),
-            model: routing.model,
-            taskType: routing.taskType,
-            externalCalls: routing.externalCalls ?? 0,
-          },
-          ...prev,
-        ]);
-      }
     } catch {
       setMessages((prev) =>
         prev.map((m) =>
@@ -95,25 +105,34 @@ export default function HomePage() {
     }
     // streaming flag released by AssistantMessage onComplete
   }
- 
+
   function handleSelectChat(chat) {
     setActiveChatId(chat.id);
     setChatTitle(chat.title);
     setChatTitleBadge('');
     setShowHero(false);
-    setMessages([
-      { id: msgIdCounter++, type: 'user', text: chat.title },
-      {
-        id: msgIdCounter++,
-        type: 'assistant',
-        markdown: chat.preview + '\n\nFeel free to ask follow-up questions!',
-        routing: null,
-        animate: false,
-      },
-    ]);
+    setIsStreaming(false);
+
+    const fullChat = DEMO_CHATS.find((c) => c.id === chat.id);
+    if (!fullChat) {
+      setMessages([]);
+      return;
+    }
+
+    const loadedMessages = fullChat.messages.map((m) => ({
+      id: msgIdCounter++,
+      type: m.role, // 'user' | 'assistant'
+      text: m.text,
+      files: m.files,
+      markdown: m.markdown,
+      routing: m.routing,
+      receivedAt: m.routing ? new Date().toLocaleTimeString() : undefined,
+      animate: false, // replaying history — show instantly, no typewriter
+    }));
+    setMessages(loadedMessages);
     scrollToBottom();
   }
- 
+
   function handleNewChat() {
     setActiveChatId(null);
     setChatTitle('SOVA Workbench');
@@ -122,11 +141,11 @@ export default function HomePage() {
     setShowHero(true);
     setIsStreaming(false);
   }
- 
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-primary)', position: 'relative' }}>
       <AmbientBackground variant="home" />
- 
+
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div
@@ -139,7 +158,7 @@ export default function HomePage() {
           className="mobile-backdrop"
         />
       )}
- 
+
       {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -147,7 +166,7 @@ export default function HomePage() {
         onSelectChat={handleSelectChat}
         onNewChat={handleNewChat}
       />
- 
+
       {/* Main area */}
       <div
         style={{
@@ -200,9 +219,29 @@ export default function HomePage() {
               )}
             </div>
           </div>
- 
+
           {/* Right controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Air-gap proof badge — reflects the real fetch log, not a static claim */}
+            <AirGapBadge onClick={() => setNetworkPanelOpen((v) => !v)} />
+
+            {/* Network activity toggle */}
+            <button
+              onClick={() => setNetworkPanelOpen((v) => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '6px 12px', borderRadius: '10px', fontSize: '12px',
+                fontWeight: 500, color: networkPanelOpen ? '#38bdf8' : 'var(--text-main)',
+                background: networkPanelOpen ? 'rgba(56,189,248,0.10)' : 'none',
+                border: '1px solid var(--sidebar-border)',
+                cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
+              }}
+              onMouseEnter={(e) => { if (!networkPanelOpen) e.currentTarget.style.background = 'var(--sidebar-hover)'; }}
+              onMouseLeave={(e) => { if (!networkPanelOpen) e.currentTarget.style.background = 'none'; }}
+            >
+              <span>Network activity</span>
+            </button>
+
             {/* Routing log toggle — the demo-day "proof" button */}
             <button
               onClick={() => setRoutingLogOpen((v) => !v)}
@@ -225,7 +264,7 @@ export default function HomePage() {
                 </span>
               )}
             </button>
- 
+
             {session ? (
               <>
                 {/* Logged-in state: shows who's in, click to log out */}
@@ -310,7 +349,7 @@ export default function HomePage() {
             )}
           </div>
         </header>
- 
+
         {/* Chat viewport */}
         <main
           ref={viewportRef}
@@ -367,13 +406,16 @@ export default function HomePage() {
             </div>
           )}
         </main>
- 
+
         {/* Chat input */}
         <ChatInput onSend={handleSend} isStreaming={isStreaming} />
       </div>
- 
+
       {routingLogOpen && (
         <RoutingLogPanel entries={routingLog} onClose={() => setRoutingLogOpen(false)} />
+      )}
+      {networkPanelOpen && (
+        <NetworkActivityPanel onClose={() => setNetworkPanelOpen(false)} shiftLeft={routingLogOpen} />
       )}
     </div>
   );

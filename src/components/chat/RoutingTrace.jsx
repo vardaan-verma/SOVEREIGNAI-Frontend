@@ -47,7 +47,7 @@ export function RoutingTrace({ routing }) {
         <span style={{ color: '#475569' }}>&middot;</span>
         <span>{TASK_LABELS[taskType] || taskType}</span>
         <span style={{ color: '#475569' }}>&middot;</span>
-        <span style={{ color: '#34d399' }}>{externalCalls} external calls</span>
+        <span style={{ color: '#34d399' }}>{externalCalls} local tool {externalCalls === 1 ? 'call' : 'calls'}</span>
         <span
           style={{
             marginLeft: 'auto',

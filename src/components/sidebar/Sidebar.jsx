@@ -1,19 +1,12 @@
 import { useState } from 'react';
 import { PiLogo } from '../ui/PiLogo';
 import { ChatItem } from './ChatItem';
-
-const RECENT_CHATS = [
-  { id: 1, title: 'Draft approval note — Unit 3 inspection', preview: 'Summarize scanned inspection report and draft an approval note for Unit 3 shutdown findings...' },
-  { id: 2, title: 'P&ID revision check — Line 220', preview: 'Compare uploaded P&ID revision against the previous approved version for line 220...' },
-  { id: 3, title: 'Vendor quote comparison script', preview: 'Python script to parse and compare three vendor quotation spreadsheets...' },
-  { id: 4, title: 'SOP lookup — confined space entry', preview: 'Grounded answer from internal safety manual on confined space entry procedure...' },
-  { id: 5, title: 'Sensor CSV anomaly scan', preview: 'Flag readings outside tolerance in the last shift\u2019s sensor export...' },
-];
+import { DEMO_CHATS } from '../../data/demoChats';
 
 export function Sidebar({ isOpen, activeId, onSelectChat, onNewChat }) {
   const [search, setSearch] = useState('');
 
-  const filtered = RECENT_CHATS.filter((c) =>
+  const filtered = DEMO_CHATS.filter((c) =>
     c.title.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -48,7 +41,7 @@ export function Sidebar({ isOpen, activeId, onSelectChat, onNewChat }) {
           </div>
         </div>
 
-        {/* New Chat / SOVA pill */}
+        {/* New Chat button */}
         <div style={{ paddingTop: '4px', marginTop: '4px' }}>
           <button
             onClick={onNewChat}
@@ -60,18 +53,26 @@ export function Sidebar({ isOpen, activeId, onSelectChat, onNewChat }) {
               padding: '10px 14px',
               borderRadius: '9999px',
               background: 'var(--sidebar-hover)',
-              border: 'none',
+              border: '1px solid var(--sidebar-border)',
               cursor: 'pointer',
               color: 'var(--text-main)',
               fontSize: '13px',
               fontWeight: 500,
-              transition: 'background 0.15s',
+              transition: 'background 0.15s, border-color 0.15s',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-border)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--sidebar-border)'; }}
           >
-            <PiLogo size="sm" />
-            <span style={{ fontSize: '15px', fontWeight: 500, letterSpacing: '-0.01em' }}>SOVA</span>
+            <span style={{
+              width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(56,189,248,0.15)', color: '#38bdf8',
+            }}>
+              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M12 4v16m8-8H4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span>New chat</span>
           </button>
         </div>
 
@@ -130,7 +131,7 @@ export function Sidebar({ isOpen, activeId, onSelectChat, onNewChat }) {
             background: 'rgba(255,255,255,0.05)',
             color: 'rgba(56,189,248,0.8)',
           }}>
-            {RECENT_CHATS.length} chats
+            {DEMO_CHATS.length} chats
           </span>
         </div>
 
