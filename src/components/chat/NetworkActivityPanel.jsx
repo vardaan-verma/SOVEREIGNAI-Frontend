@@ -5,12 +5,14 @@ import { useNetworkLog } from '../../hooks/useNetworkLog';
 // backend, agent, MCP tool calls, or database queries, since those run in
 // a separate process. Say so explicitly if presenting this on demo day;
 // don't let it imply full-stack coverage it doesn't have.
-export function NetworkActivityPanel({ onClose, shiftLeft = false }) {
+export function NetworkActivityPanel({ onClose, shiftLeft = false, onMouseEnter, onMouseLeave }) {
   const log = useNetworkLog();
   const externalCount = log.filter((e) => e.classification === 'external').length;
 
   return (
     <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       style={{
         position: 'fixed',
         top: 64,

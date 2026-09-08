@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTypewriter } from '../../hooks/useTypewriter';
 import { RoutingTrace } from './RoutingTrace';
+import { PiLogo } from '../ui/PiLogo';
 
 // Converts raw markdown text to React elements (simple parser)
 function parseMarkdown(text) {
@@ -117,23 +118,8 @@ function inlineFormat(text) {
 // SOVA response avatar
 function SovaAvatar() {
   return (
-    <div style={{
-      width: 28, height: 28, borderRadius: '10px', flexShrink: 0, marginTop: '2px',
-      background: 'linear-gradient(135deg, rgba(56,189,248,0.20), rgba(192,132,252,0.20))',
-      border: '1px solid rgba(56,189,248,0.30)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: '0 2px 8px rgba(56,189,248,0.15)',
-    }}>
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-        <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="url(#sovaGrad)" />
-        <defs>
-          <linearGradient id="sovaGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#38bdf8" />
-            <stop offset="50%" stopColor="#818cf8" />
-            <stop offset="100%" stopColor="#f472b6" />
-          </linearGradient>
-        </defs>
-      </svg>
+    <div style={{ marginTop: '2px', flexShrink: 0 }}>
+      <PiLogo size="sm" />
     </div>
   );
 }

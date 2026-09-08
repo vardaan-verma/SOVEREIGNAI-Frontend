@@ -1,9 +1,9 @@
 // Shared π logo icon used across both pages
 export function PiLogo({ size = 'md', className = '' }) {
   const sizes = {
-    sm: { outer: '20px', inner: '12px' },
-    md: { outer: '56px', inner: '30px' },
-    lg: { outer: '64px', inner: '36px' },
+    sm: { outer: '26px', inner: '15px', radius: '8px' },
+    md: { outer: '56px', inner: '30px', radius: '14px' },
+    lg: { outer: '64px', inner: '36px', radius: '16px' },
   };
   const s = sizes[size] || sizes.md;
 
@@ -13,7 +13,7 @@ export function PiLogo({ size = 'md', className = '' }) {
       style={{
         width: s.outer,
         height: s.outer,
-        borderRadius: '14px',
+        borderRadius: s.radius,
         background: 'linear-gradient(135deg, rgba(56,189,248,0.20), rgba(59,130,246,0.30), rgba(99,102,241,0.20))',
         border: '1px solid rgba(56,189,248,0.30)',
         display: 'flex',

@@ -17,9 +17,9 @@ let msgIdCounter = 0;
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
-  const [chatTitle, setChatTitle] = useState('SOVA Workbench');
+  const [chatTitle, setChatTitle] = useState('SOVA');
   const [chatTitleBadge, setChatTitleBadge] = useState('');
   const [messages, setMessages] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -27,6 +27,30 @@ export default function HomePage() {
   const [routingLogOpen, setRoutingLogOpen] = useState(false);
   const [networkPanelOpen, setNetworkPanelOpen] = useState(false);
   const viewportRef = useRef(null);
+  const routingHoverTimer = useRef(null);
+  const networkHoverTimer = useRef(null);
+
+  const handleRoutingMouseEnter = () => {
+    if (routingHoverTimer.current) clearTimeout(routingHoverTimer.current);
+    setRoutingLogOpen(true);
+  };
+
+  const handleRoutingMouseLeave = () => {
+    routingHoverTimer.current = setTimeout(() => {
+      setRoutingLogOpen(false);
+    }, 200);
+  };
+
+  const handleNetworkMouseEnter = () => {
+    if (networkHoverTimer.current) clearTimeout(networkHoverTimer.current);
+    setNetworkPanelOpen(true);
+  };
+
+  const handleNetworkMouseLeave = () => {
+    networkHoverTimer.current = setTimeout(() => {
+      setNetworkPanelOpen(false);
+    }, 200);
+  };
 
   // Routing log is derived from whatever's currently in `messages`, not
   // stored separately — so switching chats or starting a new one clears it
@@ -223,11 +247,23 @@ export default function HomePage() {
           {/* Right controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {/* Air-gap proof badge — reflects the real fetch log, not a static claim */}
-            <AirGapBadge onClick={() => setNetworkPanelOpen((v) => !v)} />
+            <AirGapBadge
+              onClick={() => setNetworkPanelOpen((v) => !v)}
+              onMouseEnter={handleNetworkMouseEnter}
+              onMouseLeave={handleNetworkMouseLeave}
+            />
 
             {/* Network activity toggle */}
             <button
               onClick={() => setNetworkPanelOpen((v) => !v)}
+              onMouseEnter={(e) => {
+                handleNetworkMouseEnter();
+                if (!networkPanelOpen) e.currentTarget.style.background = 'var(--sidebar-hover)';
+              }}
+              onMouseLeave={(e) => {
+                handleNetworkMouseLeave();
+                if (!networkPanelOpen) e.currentTarget.style.background = 'none';
+              }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '6px 12px', borderRadius: '10px', fontSize: '12px',
@@ -236,8 +272,6 @@ export default function HomePage() {
                 border: '1px solid var(--sidebar-border)',
                 cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
               }}
-              onMouseEnter={(e) => { if (!networkPanelOpen) e.currentTarget.style.background = 'var(--sidebar-hover)'; }}
-              onMouseLeave={(e) => { if (!networkPanelOpen) e.currentTarget.style.background = 'none'; }}
             >
               <span>Network activity</span>
             </button>
@@ -245,6 +279,14 @@ export default function HomePage() {
             {/* Routing log toggle — the demo-day "proof" button */}
             <button
               onClick={() => setRoutingLogOpen((v) => !v)}
+              onMouseEnter={(e) => {
+                handleRoutingMouseEnter();
+                if (!routingLogOpen) e.currentTarget.style.background = 'var(--sidebar-hover)';
+              }}
+              onMouseLeave={(e) => {
+                handleRoutingMouseLeave();
+                if (!routingLogOpen) e.currentTarget.style.background = 'none';
+              }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '6px 12px', borderRadius: '10px', fontSize: '12px',
@@ -253,8 +295,6 @@ export default function HomePage() {
                 border: '1px solid var(--sidebar-border)',
                 cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
               }}
-              onMouseEnter={(e) => { if (!routingLogOpen) e.currentTarget.style.background = 'var(--sidebar-hover)'; }}
-              onMouseLeave={(e) => { if (!routingLogOpen) e.currentTarget.style.background = 'none'; }}
             >
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8', display: 'inline-block' }} />
               <span>Routing log</span>
@@ -266,86 +306,91 @@ export default function HomePage() {
             </button>
 
             {session ? (
-              <>
-                {/* Logged-in state: shows who's in, click to log out */}
-                <button
-                  onClick={handleLogout}
-                  title="Click to log out"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 12px', borderRadius: '10px', fontSize: '12px',
-                    fontWeight: 500, color: 'var(--text-main)',
-                    background: 'none', border: '1px solid var(--sidebar-border)',
-                    cursor: 'pointer', transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                >
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", color: '#7dd3fc' }}>
-                    {session.employee_id}
-                  </span>
-                  <span style={{ color: 'var(--text-muted)' }}>· Log out</span>
-                </button>
+              /* Signed-in state: Profile Icon with User Name and Employee ID */
+              <button
+                onClick={handleLogout}
+                title={`Signed in as ${session.name || 'User'} (${session.employee_id}) — Click to log out`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '4px 12px 4px 6px',
+                  borderRadius: '9999px',
+                  background: 'rgba(15, 23, 42, 0.65)',
+                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.6)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.3)')}
+              >
+                {/* Profile Icon Avatar */}
                 <div
                   style={{
-                    width: 32, height: 32, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(56,189,248,0.20), rgba(192,132,252,0.30))',
-                    border: '1px solid rgba(56,189,248,0.30)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 26,
+                    height: 26,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#ffffff',
+                    fontSize: '11px',
+                    fontWeight: 600,
                     position: 'relative',
+                    boxShadow: '0 2px 6px rgba(56, 189, 248, 0.25)',
+                    flexShrink: 0,
                   }}
-                  title={`Signed in as ${session.employee_id} (${session.role})`}
                 >
-                  <svg width="16" height="16" fill="none" stroke="#93c5fd" strokeWidth="1.75" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span style={{
-                    position: 'absolute', bottom: 0, right: 0,
-                    width: 8, height: 8, borderRadius: '50%',
-                    background: '#10b981',
-                    border: '2px solid var(--bg-primary)',
-                  }} />
+                  {(session.name || session.employee_id || 'U').charAt(0).toUpperCase()}
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      border: '1.5px solid #0f172a',
+                    }}
+                  />
                 </div>
-              </>
+
+                {/* Name & Employee ID */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: 1.15 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-main)' }}>
+                    {session.name || 'Alex Mercer'}
+                  </span>
+                  <span style={{ fontSize: '10px', color: '#7dd3fc', fontFamily: "'JetBrains Mono', monospace" }}>
+                    {session.employee_id}
+                  </span>
+                </div>
+
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                  &middot; Log out
+                </span>
+              </button>
             ) : (
-              <>
-                {/* Logged-out state: sends to LoginPage */}
-                <button
-                  onClick={() => navigate('/login')}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 12px', borderRadius: '10px', fontSize: '12px',
-                    fontWeight: 500, color: 'var(--text-main)',
-                    background: 'none', border: '1px solid var(--sidebar-border)',
-                    cursor: 'pointer', transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--sidebar-hover)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                >
-                  <svg width="14" height="14" fill="none" stroke="#38bdf8" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4m-5-4l5-5-5-5m5 5H3" />
-                  </svg>
-                  <span>Sign in</span>
-                </button>
-                <button
-                  onClick={() => navigate('/login')}
-                  style={{
-                    width: 32, height: 32, borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(56,189,248,0.20), rgba(192,132,252,0.30))',
-                    border: '1px solid rgba(56,189,248,0.30)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'pointer', position: 'relative',
-                    transition: 'border-color 0.15s',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(56,189,248,0.60)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(56,189,248,0.30)')}
-                  title="Profile & Account — click to sign in"
-                >
-                  <svg width="16" height="16" fill="none" stroke="#93c5fd" strokeWidth="1.75" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </button>
-              </>
+              /* Signed-out state: ONLY Sign in / Register button */
+              <button
+                onClick={() => navigate('/login')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '6px 14px', borderRadius: '10px', fontSize: '12px',
+                  fontWeight: 500, color: 'var(--text-main)',
+                  background: 'linear-gradient(135deg, rgba(56,189,248,0.12), rgba(99,102,241,0.12))',
+                  border: '1px solid rgba(56,189,248,0.30)',
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(56,189,248,0.60)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(56,189,248,0.30)')}
+              >
+                <svg width="14" height="14" fill="none" stroke="#38bdf8" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4m-5-4l5-5-5-5m5 5H3" />
+                </svg>
+                <span>Sign in / Register</span>
+              </button>
             )}
           </div>
         </header>
@@ -412,10 +457,20 @@ export default function HomePage() {
       </div>
 
       {routingLogOpen && (
-        <RoutingLogPanel entries={routingLog} onClose={() => setRoutingLogOpen(false)} />
+        <RoutingLogPanel
+          entries={routingLog}
+          onClose={() => setRoutingLogOpen(false)}
+          onMouseEnter={handleRoutingMouseEnter}
+          onMouseLeave={handleRoutingMouseLeave}
+        />
       )}
       {networkPanelOpen && (
-        <NetworkActivityPanel onClose={() => setNetworkPanelOpen(false)} shiftLeft={routingLogOpen} />
+        <NetworkActivityPanel
+          onClose={() => setNetworkPanelOpen(false)}
+          shiftLeft={routingLogOpen}
+          onMouseEnter={handleNetworkMouseEnter}
+          onMouseLeave={handleNetworkMouseLeave}
+        />
       )}
     </div>
   );

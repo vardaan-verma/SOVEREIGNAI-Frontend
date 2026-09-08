@@ -11,6 +11,7 @@ export function ChatInput({ onSend, isStreaming }) {
   const [files, setFiles] = useState([]);
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
 
   function addFiles(fileList) {
     const incoming = Array.from(fileList);
@@ -40,7 +41,7 @@ export function ChatInput({ onSend, isStreaming }) {
     }
   }
   
-   function handleFileInputChange(e) {
+  function handleFileInputChange(e) {
     if (e.target.files?.length) addFiles(e.target.files);
     e.target.value = ''; // allow re-selecting the same file later
   }
@@ -60,11 +61,35 @@ export function ChatInput({ onSend, isStreaming }) {
     const val = inputRef.current?.value.trim();
     if (!val || isStreaming) return;
     inputRef.current.value = '';
+    if (isRecording) setIsRecording(false);
     onSend(val);
+  }
+
+  function toggleRecording() {
+    setIsRecording((prev) => !prev);
   }
 
   return (
     <footer style={{ width: '100%', padding: '0 24px 16px', maxWidth: '1100px', margin: '0 auto' }}>
+      <style>{`
+        @keyframes soundWaveBar {
+          0%, 100% { transform: scaleY(0.25); }
+          50% { transform: scaleY(1); }
+        }
+        @keyframes micPulseRing {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.6); }
+          70% { transform: scale(1.15); box-shadow: 0 0 0 10px rgba(192, 132, 252, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); }
+        }
+        @keyframes purpleGlowPulse {
+          0%, 100% { opacity: 0.55; filter: blur(12px); }
+          50% { opacity: 0.9; filter: blur(18px); }
+        }
+        @keyframes purplePulseDot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.85); }
+        }
+      `}</style>
       <form
         onSubmit={handleSubmit}
         style={{ position: 'relative' }}
@@ -108,12 +133,15 @@ export function ChatInput({ onSend, isStreaming }) {
           style={{
             position: 'absolute',
             inset: '-2px',
-            background: 'linear-gradient(to right, #3b82f6, #6366f1, #38bdf8)',
-            opacity: focused || dragOver ? 0.6 : 0.15,
+            background: isRecording
+              ? 'linear-gradient(to right, #a855f7, #c084fc, #6366f1)'
+              : 'linear-gradient(to right, #3b82f6, #6366f1, #38bdf8)',
+            opacity: isRecording ? 0.85 : focused || dragOver ? 0.6 : 0.15,
             filter: 'blur(10px)',
             borderRadius: '9999px',
-            transition: 'opacity 0.4s',
+            transition: 'opacity 0.4s, background 0.4s',
             pointerEvents: 'none',
+            animation: isRecording ? 'purpleGlowPulse 1.8s infinite ease-in-out' : 'none',
           }}
         />
         {/* Input bar */}
@@ -122,13 +150,19 @@ export function ChatInput({ onSend, isStreaming }) {
             position: 'relative',
             display: 'flex',
             alignItems: 'center',
-            background: 'var(--input-bg)',
-            border: dragOver ? '1px solid rgba(56,189,248,0.6)' : '1px solid var(--input-border)',
+            background: isRecording ? 'rgba(20, 14, 30, 0.85)' : 'var(--input-bg)',
+            border: isRecording
+              ? '1px solid rgba(192, 132, 252, 0.5)'
+              : dragOver
+              ? '1px solid rgba(56,189,248,0.6)'
+              : '1px solid var(--input-border)',
             backdropFilter: 'blur(20px)',
-            padding: '10px 12px',
+            padding: '10px 14px',
             borderRadius: '9999px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            transition: 'border-color 0.2s',
+            boxShadow: isRecording
+              ? '0 8px 32px rgba(168, 85, 247, 0.25)'
+              : '0 8px 32px rgba(0,0,0,0.3)',
+            transition: 'all 0.3s ease',
           }}
         >
           {/* Attach button */}
@@ -149,12 +183,18 @@ export function ChatInput({ onSend, isStreaming }) {
             </svg>
           </button>
  
-          {/* Text input */}
+          {/* Text input or active recording status */}
           <input
             ref={inputRef}
             type="text"
             autoComplete="off"
-            placeholder={files.length > 0 ? 'Add a message (optional)...' : 'Ask SOVA, explore thoughts, or prompt local AI...'}
+            placeholder={
+              isRecording
+                ? 'Listening... Speak now'
+                : files.length > 0
+                ? 'Add a message (optional)...'
+                : 'Ask SOVA, explore thoughts, or prompt local AI...'
+            }
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             disabled={isStreaming}
@@ -163,44 +203,101 @@ export function ChatInput({ onSend, isStreaming }) {
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: 'var(--text-main)',
+              color: isRecording ? '#e9d5ff' : 'var(--text-main)',
               fontSize: '0.875rem',
-              fontWeight: 300,
+              fontWeight: isRecording ? 400 : 300,
               padding: '4px 12px',
             }}
           />
- 
+
+          {/* Soundwave Animation & Recording Indicator while recording */}
+          {isRecording && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#c084fc',
+                    display: 'inline-block',
+                    animation: 'purplePulseDot 1.2s infinite ease-in-out',
+                    boxShadow: '0 0 8px #c084fc',
+                  }}
+                />
+                <span style={{ fontSize: '12px', color: '#e9d5ff', fontWeight: 500, letterSpacing: '0.5px' }}>
+                  REC
+                </span>
+              </div>
+              {/* Audio visualizer equalizer bars */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '18px' }}>
+                {[0.4, 0.7, 0.3, 0.9, 0.5, 0.8, 0.4].map((delay, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      width: '3px',
+                      height: '100%',
+                      borderRadius: '3px',
+                      background: 'linear-gradient(to top, #a855f7, #c084fc)',
+                      animation: `soundWaveBar 0.8s ease-in-out ${delay}s infinite`,
+                      transformOrigin: 'bottom',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Right action buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-            {/* Refresh/reset */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            {/* Mic / Stop Recording Toggle Button */}
             <button
               type="button"
-              title="Refresh"
+              title={isRecording ? 'Stop recording' : 'Voice input'}
+              onClick={toggleRecording}
               style={{
-                padding: '8px', color: 'var(--text-muted)', background: 'none', border: 'none',
-                cursor: 'pointer', borderRadius: '8px', display: 'flex', transition: 'color 0.15s',
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                background: isRecording ? '#f43f5e' : 'transparent',
+                color: isRecording ? '#ffffff' : 'var(--text-muted)',
+                border: isRecording ? 'none' : 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                animation: isRecording ? 'micPulseRing 1.5s infinite ease-in-out' : 'none',
+                boxShadow: isRecording ? '0 0 12px rgba(192, 132, 252, 0.5)' : 'none',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#f59e0b')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-              </svg>
-            </button>
-            {/* Mic */}
-            <button
-              type="button"
-              title="Voice input"
-              style={{
-                padding: '8px', color: 'var(--text-muted)', background: 'none', border: 'none',
-                cursor: 'pointer', borderRadius: '8px', display: 'flex', transition: 'color 0.15s',
+              onMouseEnter={(e) => {
+                if (!isRecording) {
+                  e.currentTarget.style.color = '#38bdf8';
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                } else {
+                  e.currentTarget.style.background = '#e11d48';
+                }
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#38bdf8')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+              onMouseLeave={(e) => {
+                if (!isRecording) {
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                  e.currentTarget.style.background = 'transparent';
+                } else {
+                  e.currentTarget.style.background = '#f43f5e';
+                }
+              }}
             >
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-              </svg>
+              {isRecording ? (
+                /* Muted Rose Stop Icon */
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="4" y="4" width="16" height="16" rx="3" />
+                </svg>
+              ) : (
+                /* Mic Icon */
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                </svg>
+              )}
             </button>
             {/* Send */}
             <button
@@ -231,4 +328,5 @@ export function ChatInput({ onSend, isStreaming }) {
     </footer>
   );
 }
+
  

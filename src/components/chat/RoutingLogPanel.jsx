@@ -1,9 +1,11 @@
 // Log of every routing decision made in the CURRENT chat. Derived from the
 // active message list in HomePage, so switching or starting a new chat
 // clears it automatically — this deliberately does not persist across chats.
-export function RoutingLogPanel({ entries, onClose }) {
+export function RoutingLogPanel({ entries, onClose, onMouseEnter, onMouseLeave }) {
   return (
     <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       style={{
         position: 'fixed',
         top: 64,

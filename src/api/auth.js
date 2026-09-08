@@ -28,7 +28,26 @@ export async function authenticateUser(employeeId, accessToken) {
     return {
       success: true,
       message: 'Authentication successful. Directing to SOVA workspace...',
-      data: { employee_id: employeeId, role: 'admin', session: 'demo-token' },
+      data: {
+        employee_id: employeeId,
+        name: 'Alex Mercer',
+        role: 'admin',
+        session: 'demo-token'
+      },
+    };
+  }
+
+  // Also support any employee ID format for smooth testing/registration
+  if (employeeId && accessToken) {
+    return {
+      success: true,
+      message: 'Authentication successful. Directing to SOVA workspace...',
+      data: {
+        employee_id: employeeId,
+        name: employeeId.includes('-') ? `Employee ${employeeId.split('-')[1]}` : 'SOVA Creator',
+        role: 'user',
+        session: 'demo-token'
+      },
     };
   }
 
@@ -48,6 +67,16 @@ export async function authenticateUser(employeeId, accessToken) {
   // if (!response.ok) {
   //   return { success: false, message: data.message || data.error || 'Authentication failed.' };
   // }
-  // return { success: true, message: data.message || 'Authentication successful.', data };
+  // const userObj = data.user || data;
+  // return {
+  //   success: true,
+  //   message: data.message || 'Authentication successful.',
+  //   data: {
+  //     employee_id: userObj.employee_id || employeeId,
+  //     name: userObj.name || userObj.full_name || userObj.username || 'Alex Mercer',
+  //     role: userObj.role || 'user',
+  //     session: data.token || data.access_token || 'session-token'
+  //   }
+  // };
   // ─────────────────────────────────────────────────────────────────────────
 }
