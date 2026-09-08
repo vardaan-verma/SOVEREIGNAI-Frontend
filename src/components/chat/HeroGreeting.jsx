@@ -1,5 +1,5 @@
 // Hero greeting shown when no conversation is active
-export function HeroGreeting({ onDemoPrompt }) {
+export function HeroGreeting({ firstName, onDemoPrompt }) {
   const prompts = [
     { label: 'Lighting temperature guide', text: 'How do I pick 2700K vs 3000K warm lighting for my desk setup?', color: '#38bdf8' },
     { label: 'Explain Local LLM Quantization', text: 'Explain how local LLM quantizations (GGUF, AWQ, 4-bit) impact GPU VRAM and latency.', color: '#818cf8' },
@@ -29,7 +29,7 @@ export function HeroGreeting({ onDemoPrompt }) {
 
         {/* Headline */}
         <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontFamily: 'Outfit, sans-serif', fontWeight: 300, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
-          <span style={{ color: '#38bdf8', fontWeight: 500 }}>Hello, Creator.</span>
+          <span style={{ color: '#38bdf8', fontWeight: 500 }}>Hello, {firstName || 'Creator'}.</span>
           <br />
           <span style={{ color: 'var(--text-main)' }}>How can I assist your thinking today?</span>
         </h1>

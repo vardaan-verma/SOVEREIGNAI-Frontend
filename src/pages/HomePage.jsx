@@ -80,6 +80,7 @@ export default function HomePage() {
       return null;
     }
   });
+  const firstName = session?.name?.trim().split(/\s+/)[0] || '';
 
   function handleLogout() {
     localStorage.removeItem('sova_session');
@@ -411,7 +412,7 @@ export default function HomePage() {
           }}
         >
           {showHero || messages.length === 0 ? (
-            <HeroGreeting onDemoPrompt={handleSend} />
+            <HeroGreeting firstName={firstName} onDemoPrompt={handleSend} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '8px' }}>
               {messages.map((msg) => {

@@ -3,14 +3,22 @@
 // To switch to real API: comment out the simulation block and
 // uncomment the real fetch block below it.
 //
-// Valid demo credentials: EMP-9428  /  demo-pass-2026
+// Valid demo credentials:
+// EMP-1 / CHAPRANA, EMP-2 / VERMA, EMP-3 / JAISWAL,
+// EMP-4 / SIROHI, EMP-5 / JANGID
 // ─────────────────────────────────────────────────────────────────────────────
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // ── VALID DEMO CREDENTIALS ────────────────────────────────────────────────────
-const DEMO_EMPLOYEE_ID = 'EMP-9428';
-const DEMO_ACCESS_TOKEN = 'demo-pass-2026';
+const DEMO_USERS = {
+  'EMP-9428': { accessToken: 'demo-pass-2026', name: 'Alex Mercer' },
+  'EMP-1': { accessToken: 'CHAPRANA', name: 'Sujal Chaprana' },
+  'EMP-2': { accessToken: 'VERMA', name: 'Vardaan Verma' },
+  'EMP-3': { accessToken: 'JAISWAL', name: 'Deepma Jaiswal' },
+  'EMP-4': { accessToken: 'SIROHI', name: 'Sania Sirohi' },
+  'EMP-5': { accessToken: 'JANGID', name: 'Yash Jangid' },
+};
 
 /**
  * Authenticates an employee.
@@ -24,28 +32,15 @@ export async function authenticateUser(employeeId, accessToken) {
   // ── SIMULATION (remove this block when real API is ready) ─────────────────
   await new Promise((r) => setTimeout(r, 1200)); // realistic network delay
 
-  if (employeeId === DEMO_EMPLOYEE_ID && accessToken === DEMO_ACCESS_TOKEN) {
+  const demoUser = DEMO_USERS[employeeId];
+  if (demoUser && accessToken === demoUser.accessToken) {
     return {
       success: true,
       message: 'Authentication successful. Directing to SOVA workspace...',
       data: {
         employee_id: employeeId,
-        name: 'Alex Mercer',
+        name: demoUser.name,
         role: 'admin',
-        session: 'demo-token'
-      },
-    };
-  }
-
-  // Also support any employee ID format for smooth testing/registration
-  if (employeeId && accessToken) {
-    return {
-      success: true,
-      message: 'Authentication successful. Directing to SOVA workspace...',
-      data: {
-        employee_id: employeeId,
-        name: employeeId.includes('-') ? `Employee ${employeeId.split('-')[1]}` : 'SOVA Creator',
-        role: 'user',
         session: 'demo-token'
       },
     };
@@ -53,7 +48,7 @@ export async function authenticateUser(employeeId, accessToken) {
 
   return {
     success: false,
-    message: 'Authentication failed. Please check your Employee ID and Access Token.',
+    message: 'Invalid Employee ID or Access Token. Please check your credentials.',
   };
   // ── END SIMULATION ────────────────────────────────────────────────────────
 

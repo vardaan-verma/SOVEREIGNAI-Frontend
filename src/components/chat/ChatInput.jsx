@@ -60,9 +60,11 @@ export function ChatInput({ onSend, isStreaming }) {
     e.preventDefault();
     const val = inputRef.current?.value.trim();
     if (!val || isStreaming) return;
+    const filesToSend = files;
     inputRef.current.value = '';
+    setFiles([]);
     if (isRecording) setIsRecording(false);
-    onSend(val);
+    onSend(val, filesToSend);
   }
 
   function toggleRecording() {
