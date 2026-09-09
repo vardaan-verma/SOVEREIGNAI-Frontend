@@ -189,6 +189,39 @@ code {
 /* ── Responsive ───────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .mobile-backdrop { display: block !important; }
+  .mobile-header-action { display: none !important; }
+
+  .mobile-profile-button {
+    padding: 6px !important;
+    border-radius: 50% !important;
+    min-width: 0 !important;
+    width: 36px !important;
+    height: 36px !important;
+    justify-content: center !important;
+  }
+
+  .mobile-profile-button .mobile-profile-meta,
+  .mobile-profile-button .mobile-profile-logout,
+  .mobile-profile-button .mobile-profile-name,
+  .mobile-profile-button .mobile-profile-id {
+    display: none !important;
+  }
+
+  .mobile-profile-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 10px !important;
+  }
+
+  .mobile-login-button {
+    padding: 6px 10px !important;
+    border-radius: 9999px !important;
+    min-width: 0 !important;
+  }
+
+  .mobile-login-button .mobile-login-label {
+    display: none !important;
+  }
 }
 
 /* ── Accessibility ────────────────────────────────────────────────────── */

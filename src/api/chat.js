@@ -43,3 +43,67 @@ export async function getChatResponse(prompt, files = []) {
 
   return res.json(); // { markdown, routing }
 }
+
+/**
+ * Stream a chat response using Server-Sent Events (SSE) so the UI can
+ * render incoming tokens as they arrive.
+ *
+ * @param {string} prompt
+ * @param {(text: string) => void} [onToken]
+ * @param {(result: { markdown: string, routing?: object }) => void} [onComplete]
+ */
+export async function getChatResponseStream(prompt, onToken, onComplete) {
+  const res = await fetch(`${API_BASE}/chat/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Backend returned ${res.status}`);
+  }
+
+  if (!res.body) {
+    throw new Error('Streaming response body is unavailable.');
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const messages = buffer.split('\n\n');
+    buffer = messages.pop() || '';
+
+    for (const message of messages) {
+      const dataLine = message
+        .split('\n')
+        .find((line) => line.startsWith('data: '));
+
+      if (!dataLine) continue;
+
+      const payload = dataLine.slice('data: '.length).trim();
+      if (!payload) continue;
+
+      const event = JSON.parse(payload);
+
+      if (event.type === 'token') {
+        onToken?.(event.text || '');
+      } else if (event.type === 'complete') {
+        onComplete?.({
+          markdown: event.markdown || '',
+          routing: event.routing || null,
+        });
+        return;
+      } else if (event.type === 'error') {
+        throw new Error(event.message || 'Stream failed.');
+      }
+    }
+  }
+
+  onComplete?.({ markdown: '', routing: null });
+}

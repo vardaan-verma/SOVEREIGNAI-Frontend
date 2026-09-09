@@ -4,13 +4,14 @@ import { useNetworkLog } from '../../hooks/useNetworkLog';
 // Turns red the instant a single external request is ever made — this is
 // deliberately not something a component prop can override, since the
 // whole point is that it can't be faked from inside the app.
-export function AirGapBadge({ onClick, onMouseEnter, onMouseLeave }) {
+export function AirGapBadge({ onClick, onMouseEnter, onMouseLeave, className }) {
   const log = useNetworkLog();
   const externalCount = log.filter((e) => e.classification === 'external').length;
   const isClean = externalCount === 0;
 
   return (
     <button
+      className={className}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

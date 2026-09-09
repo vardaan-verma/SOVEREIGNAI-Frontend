@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
-import { useTypewriter } from '../../hooks/useTypewriter';
+import { useState, useEffect } from 'react';
 import { RoutingTrace } from './RoutingTrace';
 import { PiLogo } from '../ui/PiLogo';
 
@@ -144,25 +143,27 @@ function ThinkingSkeleton() {
   );
 }
 
-export function AssistantMessage({ markdown, routing, animate = true, onComplete }) {
-  const [phase, setPhase] = useState(animate ? 'thinking' : 'done');
-  const [displayed, setDisplayed] = useState(animate ? '' : markdown);
+export function AssistantMessage({ markdown = '', routing, animate = true, streaming = false }) {
+  const [phase, setPhase] = useState(animate && !markdown && !streaming ? 'thinking' : 'done');
+  const [displayed, setDisplayed] = useState(markdown);
   const [copied, setCopied] = useState(false);
-  const stream = useTypewriter();
 
   useEffect(() => {
-    if (!animate) return;
-    const thinkTimer = setTimeout(() => {
+    if (animate && !markdown && !streaming) {
+      setPhase('thinking');
+      setDisplayed('');
+      return;
+    }
+
+    if (streaming) {
       setPhase('streaming');
-      stream(
-        markdown,
-        (text) => setDisplayed(text),
-        () => { setPhase('done'); onComplete?.(); },
-        18
-      );
-    }, 1100);
-    return () => clearTimeout(thinkTimer);
-  }, []);
+      setDisplayed(markdown || '');
+      return;
+    }
+
+    setPhase('done');
+    setDisplayed(markdown || '');
+  }, [animate, markdown, streaming]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(markdown);
@@ -187,6 +188,14 @@ export function AssistantMessage({ markdown, routing, animate = true, onComplete
         {/* Routing trace — only once the response is fully in, so it doesn't
             pop in mid-stream and distract from the typewriter effect */}
         {phase === 'done' && <RoutingTrace routing={routing} />}
+
+        {/* Streaming thinking label */}
+        {phase === 'streaming' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '12px', fontWeight: 500 }}>
+            <span className="animate-ping" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#38bdf8' }} />
+            <span className="gemini-text-gradient" style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 500 }}>SOVA is thinking...</span>
+          </div>
+        )}
 
         {/* Content */}
         <div className="prose-dark" style={{ fontSize: '0.875rem', lineHeight: 1.7, color: 'var(--text-main)' }}>

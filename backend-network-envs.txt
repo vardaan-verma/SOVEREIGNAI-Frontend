@@ -1,0 +1,52 @@
+SOVA Frontend ↔ Backend Networking Requirements
+
+What the frontend needs
+- Frontend env variable: VITE_API_BASE_URL
+- Purpose: base URL for the backend API used by the React app
+- Default if unset: http://localhost:8000/api
+- For LAN or remote network, set it explicitly to the backend machine's reachable URL
+
+Examples:
+- LAN: http://192.168.1.50:8000/api
+- Remote/public: https://your-domain.example.com/api
+
+What the backend needs
+- MCP_HOST
+  - Default: 0.0.0.0
+  - Purpose: host/interface the FastAPI server listens on
+
+- MCP_PORT
+  - Default: 8000
+  - Purpose: port for the backend API
+
+- LOCAL_LLM_URL
+  - Purpose: base URL for the local OpenAI-compatible model endpoint used by the chat flow
+  - Example: http://192.168.1.50:8080
+
+Recommended backend env values
+- MCP_HOST=0.0.0.0
+- MCP_PORT=8000
+- LOCAL_LLM_URL=http://192.168.1.50:8080
+
+Frontend example .env
+VITE_API_BASE_URL=http://192.168.1.50:8000/api
+
+Backend example env
+MCP_HOST=0.0.0.0
+MCP_PORT=8000
+LOCAL_LLM_URL=http://192.168.1.50:8080
+
+Important notes
+- The frontend currently calls: /api/chat and /api/chat/stream
+- The backend server must expose those endpoints on the configured MCP_PORT
+- The frontend uses VITE_API_BASE_URL for all backend calls; if not set, it will use localhost:8000/api
+- The backend already has CORS enabled for all origins, so browser cross-origin requests should be allowed
+- For LAN access, make sure the backend machine exposes port 8000 and the frontend machine can reach it over the network
+
+Files that define this in the code
+- Frontend: src/api/chat.js
+- Frontend: src/api/auth.js
+- Backend: mrpl-workbench/mcp_server/config.py
+- Backend: mrpl-workbench/mcp_server/main.py
+
+If needed, backend dev can also confirm the actual model endpoint format expected by the local LLM integration (for example, OpenAI-compatible /v1/chat/completions). 

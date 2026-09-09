@@ -16,12 +16,14 @@ Run with:
 
 from __future__ import annotations
 
+import json
 import time
+import urllib.request
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from mcp_server import config
 from mcp_server import tool_registry
@@ -43,6 +45,104 @@ from mcp_server.utils.error_handler import make_error_response
 
 _START_TIME = time.time()
 
+
+def _sse_event(event_type: str, payload: dict) -> str:
+    return f"data: {json.dumps({'type': event_type, **payload})}\n\n"
+
+def _request_local_chat_completion(prompt: str) -> str:
+    if not config.LOCAL_LLM_URL:
+        raise RuntimeError("LOCAL_LLM_URL is not configured.")
+
+    payload = json.dumps(
+        {
+            "model": "default",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0,
+            "max_tokens": 1024,
+            "stream": False,
+        }
+    ).encode("utf-8")
+
+    req = urllib.request.Request(
+        f"{config.LOCAL_LLM_URL.rstrip('/')}/v1/chat/completions",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    with urllib.request.urlopen(req, timeout=120) as resp:
+        body = json.loads(resp.read().decode("utf-8"))
+
+    return body["choices"][0]["message"]["content"].strip()
+
+
+def _stream_local_chat(prompt: str):
+    if not config.LOCAL_LLM_URL:
+        yield _sse_event("error", {"message": "LOCAL_LLM_URL is not configured."})
+        return
+
+    payload = json.dumps(
+        {
+            "model": "default",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0,
+            "max_tokens": 1024,
+            "stream": True,
+        }
+    ).encode("utf-8")
+
+    req = urllib.request.Request(
+        f"{config.LOCAL_LLM_URL.rstrip('/')}/v1/chat/completions",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    full_text = []
+
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            for raw_line in resp:
+                line = raw_line.decode("utf-8", errors="replace").strip()
+                if not line.startswith("data: "):
+                    continue
+
+                data = line[6:].strip()
+                if data == "[DONE]":
+                    break
+
+                try:
+                    chunk = json.loads(data)
+                except Exception:
+                    continue
+
+                choices = chunk.get("choices", [])
+                if not choices:
+                    continue
+
+                delta = choices[0].get("delta", {})
+                content = delta.get("content") or delta.get("text") or ""
+                if content:
+                    full_text.append(content)
+                    yield _sse_event("token", {"text": content})
+
+    except Exception as exc:
+        yield _sse_event("error", {"message": f"Streaming chat failed: {exc}"})
+        return
+
+    yield _sse_event(
+        "complete",
+        {
+            "markdown": "".join(full_text),
+            "routing": {
+                "model": "local_llm",
+                "taskType": "chat",
+                "externalCalls": 0,
+            },
+        },
+    )
+
+
 app = FastAPI(
     title="MRPL Sovereign AI Workbench — MCP Server",
     description=(
@@ -61,6 +161,54 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Endpoint 0: POST /api/chat and /chat ─────────────────────────────────────
+
+
+@app.post("/api/chat", tags=["Core"], summary="Chat completion (non-streaming)")
+@app.post("/chat", tags=["Core"], summary="Chat completion (non-streaming)")
+async def chat(request: Request) -> dict:
+    """Backward-compatible chat endpoint used by the frontend."""
+    body = await request.json()
+    prompt = str(body.get("prompt", "") or "").strip()
+
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Missing prompt.")
+
+    try:
+        markdown = _request_local_chat_completion(prompt)
+        return {
+            "markdown": markdown,
+            "routing": {
+                "model": "local_llm",
+                "taskType": "chat",
+                "externalCalls": 0,
+            },
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/api/chat/stream", tags=["Core"], summary="Chat completion streamed over SSE")
+@app.post("/chat/stream", tags=["Core"], summary="Chat completion streamed over SSE")
+async def chat_stream(request: Request):
+    """Stream model output token by token to the browser using SSE."""
+    content_type = request.headers.get("content-type", "")
+
+    if content_type.startswith("application/json"):
+        body = await request.json()
+        prompt = str(body.get("prompt", "") or "").strip()
+    else:
+        raise HTTPException(status_code=400, detail="Expected JSON request body.")
+
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Missing prompt.")
+
+    return StreamingResponse(
+        _stream_local_chat(prompt),
+        media_type="text/event-stream",
+    )
 
 
 # ── Endpoint 1: POST /initialize ──────────────────────────────────────────────

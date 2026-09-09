@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AttachmentChip } from './AttachmentChip';
 const ACCEPTED_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,image/*';
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
@@ -12,6 +12,21 @@ export function ChatInput({ onSend, isStreaming }) {
   const [error, setError] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth <= 768;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   function addFiles(fileList) {
     const incoming = Array.from(fileList);
@@ -138,7 +153,7 @@ export function ChatInput({ onSend, isStreaming }) {
             background: isRecording
               ? 'linear-gradient(to right, #a855f7, #c084fc, #6366f1)'
               : 'linear-gradient(to right, #3b82f6, #6366f1, #38bdf8)',
-            opacity: isRecording ? 0.85 : focused || dragOver ? 0.6 : 0.15,
+            opacity: isRecording ? 0.85 : focused || dragOver ? 0.12 : 0.04,
             filter: 'blur(10px)',
             borderRadius: '9999px',
             transition: 'opacity 0.4s, background 0.4s',
@@ -185,73 +200,78 @@ export function ChatInput({ onSend, isStreaming }) {
             </svg>
           </button>
  
-          {/* Text input or active recording status */}
-          <input
-            ref={inputRef}
-            type="text"
-            autoComplete="off"
-            placeholder={
-              isRecording
-                ? 'Listening... Speak now'
-                : files.length > 0
-                ? 'Add a message (optional)...'
-                : 'Ask SOVA, explore thoughts, or prompt local AI...'
-            }
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            disabled={isStreaming}
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: isRecording ? '#e9d5ff' : 'var(--text-main)',
-              fontSize: '0.875rem',
-              fontWeight: isRecording ? 400 : 300,
-              padding: '4px 12px',
-            }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, gap: '8px' }}>
+            {/* Text input or active recording status */}
+            <input
+              ref={inputRef}
+              type="text"
+              autoComplete="off"
+              placeholder={
+                isRecording
+                  ? 'Listening... Speak now'
+                  : files.length > 0
+                  ? 'Add a message (optional)...'
+                  : isMobile
+                  ? 'Ask SOVA'
+                  : 'Ask SOVA, explore thoughts, or prompt local AI...'
+              }
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              disabled={isStreaming}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: isRecording ? '#e9d5ff' : 'var(--text-main)',
+                fontSize: '0.875rem',
+                fontWeight: isRecording ? 400 : 300,
+                padding: '4px 0',
+              }}
+            />
 
-          {/* Soundwave Animation & Recording Indicator while recording */}
-          {isRecording && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <span
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: '#c084fc',
-                    display: 'inline-block',
-                    animation: 'purplePulseDot 1.2s infinite ease-in-out',
-                    boxShadow: '0 0 8px #c084fc',
-                  }}
-                />
-                <span style={{ fontSize: '12px', color: '#e9d5ff', fontWeight: 500, letterSpacing: '0.5px' }}>
-                  REC
-                </span>
-              </div>
-              {/* Audio visualizer equalizer bars */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '18px' }}>
-                {[0.4, 0.7, 0.3, 0.9, 0.5, 0.8, 0.4].map((delay, idx) => (
+            {/* Soundwave Animation & Recording Indicator while recording */}
+            {isRecording && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <span
-                    key={idx}
                     style={{
-                      width: '3px',
-                      height: '100%',
-                      borderRadius: '3px',
-                      background: 'linear-gradient(to top, #a855f7, #c084fc)',
-                      animation: `soundWaveBar 0.8s ease-in-out ${delay}s infinite`,
-                      transformOrigin: 'bottom',
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: '#c084fc',
+                      display: 'inline-block',
+                      animation: 'purplePulseDot 1.2s infinite ease-in-out',
+                      boxShadow: '0 0 8px #c084fc',
                     }}
                   />
-                ))}
+                  <span style={{ fontSize: '12px', color: '#e9d5ff', fontWeight: 500, letterSpacing: '0.5px' }}>
+                    REC
+                  </span>
+                </div>
+                {/* Audio visualizer equalizer bars */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '18px' }}>
+                  {[0.4, 0.7, 0.3, 0.9, 0.5, 0.8, 0.4].map((delay, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        width: '3px',
+                        height: '100%',
+                        borderRadius: '3px',
+                        background: 'linear-gradient(to top, #a855f7, #c084fc)',
+                        animation: `soundWaveBar 0.8s ease-in-out ${delay}s infinite`,
+                        transformOrigin: 'bottom',
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Right action buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '6px' }}>
             {/* Mic / Stop Recording Toggle Button */}
             <button
               type="button"

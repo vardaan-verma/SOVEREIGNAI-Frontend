@@ -10,7 +10,7 @@ import { RoutingLogPanel } from '../components/chat/RoutingLogPanel';
 import { AirGapBadge } from '../components/chat/AirGapBadge';
 import { NetworkActivityPanel } from '../components/chat/NetworkActivityPanel';
 import { PiLogo } from '../components/ui/PiLogo';
-import { getChatResponse } from '../api/chat';
+import { getChatResponse, getChatResponseStream } from '../api/chat';
 import { DEMO_CHATS } from '../data/demoChats';
 
 let msgIdCounter = 0;
@@ -106,29 +106,68 @@ export default function HomePage() {
     setMessages((prev) => [
       ...prev,
       userMsg,
-      { id: assistantId, type: 'assistant', markdown: null, routing: null, animate: true }, // placeholder
+      { id: assistantId, type: 'assistant', markdown: '', routing: null, animate: true, streaming: false },
     ]);
     scrollToBottom();
 
-    try {
-      const { markdown, routing } = await getChatResponse(text, files);
+    const applyAssistantUpdate = (patch) => {
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === assistantId
-            ? { ...m, markdown, routing, receivedAt: new Date().toLocaleTimeString() }
-            : m
+          m.id === assistantId ? { ...m, ...patch } : m
         )
+      );
+    };
+
+    try {
+      if (files.length > 0) {
+        const { markdown, routing } = await getChatResponse(text, files);
+        applyAssistantUpdate({
+          markdown,
+          routing,
+          animate: false,
+          streaming: false,
+          receivedAt: new Date().toLocaleTimeString(),
+        });
+        setIsStreaming(false);
+        scrollToBottom();
+        return;
+      }
+
+      let accumulated = '';
+      await getChatResponseStream(
+        text,
+        (token) => {
+          accumulated += token;
+          applyAssistantUpdate({
+            markdown: accumulated,
+            animate: false,
+            streaming: true,
+          });
+          scrollToBottom();
+        },
+        ({ markdown, routing }) => {
+          applyAssistantUpdate({
+            markdown: markdown || accumulated,
+            routing,
+            animate: false,
+            streaming: false,
+            receivedAt: new Date().toLocaleTimeString(),
+          });
+          setIsStreaming(false);
+          scrollToBottom();
+        }
       );
     } catch {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === assistantId
-            ? { ...m, markdown: '> **Error:** Could not fetch a response. Please try again.' }
-            : m
-        )
-      );
+      applyAssistantUpdate({
+        markdown: '> **Error:** Could not fetch a response. Please try again.',
+        animate: false,
+        streaming: false,
+        routing: null,
+        receivedAt: new Date().toLocaleTimeString(),
+      });
+      setIsStreaming(false);
+      scrollToBottom();
     }
-    // streaming flag released by AssistantMessage onComplete
   }
 
   function handleSelectChat(chat) {
@@ -249,6 +288,7 @@ export default function HomePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {/* Air-gap proof badge — reflects the real fetch log, not a static claim */}
             <AirGapBadge
+              className="mobile-header-action"
               onClick={() => setNetworkPanelOpen((v) => !v)}
               onMouseEnter={handleNetworkMouseEnter}
               onMouseLeave={handleNetworkMouseLeave}
@@ -256,6 +296,7 @@ export default function HomePage() {
 
             {/* Network activity toggle */}
             <button
+              className="mobile-header-action"
               onClick={() => setNetworkPanelOpen((v) => !v)}
               onMouseEnter={(e) => {
                 handleNetworkMouseEnter();
@@ -279,6 +320,7 @@ export default function HomePage() {
 
             {/* Routing log toggle — the demo-day "proof" button */}
             <button
+              className="mobile-header-action"
               onClick={() => setRoutingLogOpen((v) => !v)}
               onMouseEnter={(e) => {
                 handleRoutingMouseEnter();
@@ -309,6 +351,7 @@ export default function HomePage() {
             {session ? (
               /* Signed-in state: Profile Icon with User Name and Employee ID */
               <button
+                className="mobile-profile-button"
                 onClick={handleLogout}
                 title={`Signed in as ${session.name || 'User'} (${session.employee_id}) — Click to log out`}
                 style={{
@@ -327,6 +370,7 @@ export default function HomePage() {
               >
                 {/* Profile Icon Avatar */}
                 <div
+                  className="mobile-profile-avatar"
                   style={{
                     width: 26,
                     height: 26,
@@ -359,22 +403,23 @@ export default function HomePage() {
                 </div>
 
                 {/* Name & Employee ID */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: 1.15 }}>
-                  <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-main)' }}>
+                <div className="mobile-profile-meta" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: 1.15 }}>
+                  <span className="mobile-profile-name" style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-main)' }}>
                     {session.name || 'Alex Mercer'}
                   </span>
-                  <span style={{ fontSize: '10px', color: '#7dd3fc', fontFamily: "'JetBrains Mono', monospace" }}>
+                  <span className="mobile-profile-id" style={{ fontSize: '10px', color: '#7dd3fc', fontFamily: "'JetBrains Mono', monospace" }}>
                     {session.employee_id}
                   </span>
                 </div>
 
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                <span className="mobile-profile-logout" style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px' }}>
                   &middot; Log out
                 </span>
               </button>
             ) : (
               /* Signed-out state: ONLY Sign in / Register button */
               <button
+                className="mobile-login-button"
                 onClick={() => navigate('/login')}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '6px',
@@ -390,7 +435,7 @@ export default function HomePage() {
                 <svg width="14" height="14" fill="none" stroke="#38bdf8" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4m-5-4l5-5-5-5m5 5H3" />
                 </svg>
-                <span>Sign in / Register</span>
+                <span className="mobile-login-label">Sign in / Register</span>
               </button>
             )}
           </div>
@@ -426,7 +471,7 @@ export default function HomePage() {
                       markdown={msg.markdown}
                       routing={msg.routing}
                       animate={msg.animate}
-                      onComplete={() => setIsStreaming(false)}
+                      streaming={msg.streaming}
                     />
                   );
                 }
